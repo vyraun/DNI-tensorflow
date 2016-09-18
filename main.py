@@ -18,7 +18,7 @@ import numpy as np
 flags = tf.app.flags
 pp = pprint.PrettyPrinter().pprint
 
-tf.app.flags.DEFINE_integer('max_step', 1000000, 'Number of batches to run.')
+tf.app.flags.DEFINE_integer('max_step', 50000, 'Number of batches to run.')
 tf.app.flags.DEFINE_string('checkpoint_dir', './checkpoint/cifar10_train', 'save the ckpt model')
 tf.app.flags.DEFINE_string('gpu_fraction', '1/1', 'define the gpu fraction used')
 tf.app.flags.DEFINE_integer('batch_size', 100, '')
@@ -27,7 +27,7 @@ tf.app.flags.DEFINE_integer('output_size', 10, '')
 tf.app.flags.DEFINE_float('init_lr', 0.1, '')
 tf.app.flags.DEFINE_float('decay_factor', 0.1, '')
 tf.app.flags.DEFINE_integer('num_epoch_per_decay', 350, '')
-tf.app.flags.DEFINE_integer('test_per_iter', 10000, '')
+tf.app.flags.DEFINE_integer('test_per_iter', 500, '')
 tf.app.flags.DEFINE_integer('max_to_keep', 20, '')
 
 conf = flags.FLAGS
@@ -61,7 +61,7 @@ def main(_):
 	gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=calc_gpu_fraction(conf.gpu_fraction))
 	with tf.Session(config=tf.ConfigProto(gpu_options=gpu_options)) as sess:
 		model = classifier.mlp(sess, conf, num_train=num_train, input_size=input_size)
-		model.build_model()
+		model.build_cnn_model()
 		model.train(imgs, labels)	
 		pdb.set_trace()
 

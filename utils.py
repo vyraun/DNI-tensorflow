@@ -11,22 +11,40 @@ def unpickle(file):
     fo.close()
     return dict
 
+
+def pooling(inputs, kernel_size, stride, type, padding='SAME', name='max_pool'):
+	
+	kernel = [1, kernel_size[0], kernel_size[1], 1]
+	stride = [1, stride[0], stride[1], 1]
+	with tf.variable_scope(name):
+		if type == 'max':
+			out = tf.nn.max_pool(inputs, kernel, stride, padding=padding)
+		elif type == 'average':
+			out = tf.nn.avg_pool(inputs, kernel, stride, padding=padding)
+
+	return out
+
 def conv2d(inputs, output_size, kernel_size, stride, 
 			weights_initializer=tf.contrib.layers.xavier_initializer(),
 			biases_initializer=tf.zeros_initializer,
-			activation_fn=tf.nn.relu, trainable=True, padding='VALID', name='conv2d'):
+			batch_norm = True,
+			activation_fn=tf.nn.relu, padding='SAME', name='conv2d'):
 	
-	kernel_shape = [kernel_size[0], kernel_size[1], inputs.get_shape()[1], output_size]
+	kernel_shape = [kernel_size[0], kernel_size[1], inputs.get_shape()[-1], output_size]
 	stride  = [1, 1, stride[0], stride[1]]
 	with tf.variable_scope(name):
 		w = tf.get_variable('w', kernel_shape,
-			tf.float32, initializer=weights_initializer, trainable=trainable)
-		conv = tf.nn.conv2d(inputs, w, stride, padding, data_format='NCHW')
-		b = tf.get_variable('b', [output_size], tf.float32, initializer=biases_initializer, trainable=trainable)
-		out = tf.nn.bias_add(conv, b, 'NCHW')
+			tf.float32, initializer=weights_initializer)
+		conv = tf.nn.conv2d(inputs, w, stride, padding)
+		b = tf.get_variable('b', [output_size], tf.float32, initializer=biases_initializer)
+		out = tf.nn.bias_add(conv, b)
 		
+	if batch_norm:
+		out = tf.contrib.layers.batch_norm(out)
+
 	if activation_fn != None:
 		out = activation_fn(out)
+
 	return out, w, b
 
 def linear(inputs, output_size,	

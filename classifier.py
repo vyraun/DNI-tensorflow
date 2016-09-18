@@ -2,15 +2,15 @@ import tensorflow as tf
 import numpy as np
 import math
 import os
-from utils import linear
+from utils import linear, unpickle
 from tensorflow.contrib.layers.python.layers import initializers
-import pdb
 
 class mlp():
 
-	def __init__(self, sess, conf, num_train=50000, input_size=3072):
+	def __init__(self, sess, conf, num_train=50000, input_size=3072, test_filename='/data2/andrewliao11/cifar-10-batches-py/test_batch'):
 
 		self.sess = sess
+		self.test_filename = test_filename
 		self.test_per_iter = conf.test_per_iter
 		self.max_step = conf.max_step
 		self.ckpt_dir = conf.checkpoint_dir
@@ -68,11 +68,44 @@ class mlp():
 							self.imgs: img_batch,
 							self.labels: label_batch
 							})
-				print "Iter {}, loss={}".format(int(self.global_step.eval()), loss)
-				if self.global_step.eval()%self.test_per_iter == 0:
-					self.save_model()
+				print "[*] Iter {}, loss={}".format(int(self.global_step.eval()), loss)
+				if self.global_step.eval()%self.test_per_iter == 0 or self.global_step.eval()==1:
+					self.evaluate(imgs, labels, split='train')
+					self.evaluate(split='test')
 	
-	#def test(self)
+	def evaluate(self, imgs=None, labels=None, split='test'):
+	
+		if split == 'test':
+			data = unpickle(self.test_filename)
+			imgs = data['data']/255.
+			labels = np.asarray(data['labels'])
+		elif split == 'train':
+			imgs = imgs[:10000]
+			labels = labels[:10000]
+
+		num_test = imgs.shape[0]
+		correct = 0.
+		test_imgs = 0.
+		avg_loss = 0.
+		for idx in range(int(math.floor(num_test/self.batch_size))):
+			img_batch = imgs[idx*self.batch_size:(idx+1)*self.batch_size]
+			label_batch = labels[idx*self.batch_size:(idx+1)*self.batch_size]
+			pred, loss = self.sess.run([self.out_argmax, self.loss],{
+						self.imgs: img_batch,
+						self.labels: label_batch
+						})
+			correct_batch = self.calc_top1(pred, label_batch)
+			correct += correct_batch
+			test_imgs += img_batch.shape[0]
+			avg_loss += loss
+
+		print '[+] Top1 {} accuracy = {}, loss = {}'.format(split, correct/test_imgs, avg_loss/math.floor(num_test/self.batch_size))
+		self.save_model()
+
+	def calc_top1(self, pred, label):
+		correct = np.sum((pred==label)+0.)
+		return correct
+
 	def save_model(self, name='checkpoint'):
 		if not os.path.exists(self.ckpt_dir):
 			os.makedirs(self.ckpt_dir)

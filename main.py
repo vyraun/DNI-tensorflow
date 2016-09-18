@@ -11,7 +11,6 @@ labels -- a list of 10000 numbers in the range 0-9. The number at index i
 '''
 import tensorflow as tf
 import os
-import pdb
 import pprint
 import utils
 import classifier
@@ -35,6 +34,7 @@ conf = flags.FLAGS
 # set random seed
 append = lambda x: '/data2/andrewliao11/cifar-10-batches-py/data_batch_'+x
 train_filename = [ append(str(i+1)) for i in range(5)]
+test_filename = '/data2/andrewliao11/cifar-10-batches-py/test_batch'
 
 def calc_gpu_fraction(fraction_string):
 	idx, num = fraction_string.split('/')
@@ -57,6 +57,7 @@ def main(_):
 		data_batch = utils.unpickle(train_filename[i])
 		imgs[i*10000:(i+1)*10000] = data_batch['data']/255.
 		labels[i*10000:(i+1)*10000] = np.asarray(data_batch['labels'])
+	
 	gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=calc_gpu_fraction(conf.gpu_fraction))
 	with tf.Session(config=tf.ConfigProto(gpu_options=gpu_options)) as sess:
 		model = classifier.mlp(sess, conf, num_train=num_train, input_size=input_size)

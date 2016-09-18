@@ -4,7 +4,6 @@ import math
 import os
 from utils import linear, unpickle, conv2d, pooling
 from tensorflow.contrib.layers.python.layers import initializers
-import pdb
 
 class mlp():
 

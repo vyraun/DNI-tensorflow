@@ -63,7 +63,6 @@ def main(_):
 		model = classifier.mlp(sess, conf, num_train=num_train, input_size=input_size)
 		model.build_cnn_model()
 		model.train(imgs, labels)	
-		pdb.set_trace()
 
 if __name__ == '__main__':
 	tf.app.run()

@@ -7,7 +7,7 @@ from tensorflow.contrib.layers.python.layers import initializers
 
 class mlp():
 
-	def __init__(self, sess, conf, num_train=50000, input_size=3072, test_filename='/data2/andrewliao11/cifar-10-batches-py/test_batch'):
+	def __init__(self, sess, dataset, conf, num_train=50000, input_size=3072, test_filename='/data2/andrewliao11/cifar-10-batches-py/test_batch'):
 
 		self.sess = sess
 		self.test_filename = test_filename
@@ -27,6 +27,7 @@ class mlp():
 		self.bias_initializer = tf.constant_initializer(0.1)
 		self.output_size = conf.output_size
 		self.max_to_keep = conf.max_to_keep
+		self.dataset = dataset
 		self.var = {}
 
 		self.global_step = tf.get_variable('global_step', [],initializer=tf.constant_initializer(0), trainable=False)
@@ -83,37 +84,29 @@ class mlp():
 		self.loss = tf.nn.sparse_softmax_cross_entropy_with_logits(self.out, self.labels)
 		self.loss = tf.reduce_sum(self.loss)/self.batch_size
 
-	def train(self, imgs, labels):
+	def train(self):
 
 		self.train_op = self.optim.minimize(self.loss, global_step=self.global_step)
 		tf.initialize_all_variables().run()
 		self.saver = tf.train.Saver(max_to_keep=self.max_to_keep)
 		for epoch_idx in range(int(self.max_epoch)):
-			index = np.arange(self.num_train)
-			np.random.shuffle(index)
-			imgs = imgs[index]
-			labels = labels[index]
 			for idx in range(int(math.floor(self.num_train/self.batch_size))):
-				img_batch = imgs[idx*self.batch_size:(idx+1)*self.batch_size]
-				label_batch = labels[idx*self.batch_size:(idx+1)*self.batch_size]
+				img_batch, label_batch = self.dataset.sequential_sample(self.batch_size)
 				_, loss = self.sess.run([self.train_op, self.loss],{
 							self.imgs: img_batch,
 							self.labels: label_batch
 							})
 				print "[*] Iter {}, loss={}".format(int(self.global_step.eval()), loss)
 				if self.global_step.eval()%self.test_per_iter == 0 or self.global_step.eval()==1:
-					self.evaluate(imgs, labels, split='train')
+					self.evaluate(split='train')
 					self.evaluate(split='test')
 	
 	def evaluate(self, imgs=None, labels=None, split='test'):
 	
 		if split == 'test':
-			data = unpickle(self.test_filename)
-			imgs = data['data']/255.
-			labels = np.asarray(data['labels'])
+			imgs, labels = self.dataset.random_sample(-1, phase='test')
 		elif split == 'train':
-			imgs = imgs[:10000]
-			labels = labels[:10000]
+			imgs, labels = self.dataset.random_sample(10000, phase='train')
 
 		num_test = imgs.shape[0]
 		correct = 0.

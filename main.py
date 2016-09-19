@@ -11,8 +11,8 @@ labels -- a list of 10000 numbers in the range 0-9. The number at index i
 '''
 import tensorflow as tf
 import os
+from data_loader import cifar
 import pprint
-import utils
 import classifier
 import numpy as np
 flags = tf.app.flags
@@ -55,26 +55,18 @@ def main(_):
 	attrs = conf.__dict__['__flags']
 	pp(attrs)
 	conf.checkpoint_dir = os.path.join(conf.checkpoint_dir, conf.model_name)
-	# Using CIFAR10
-	num_train = 50000
-	input_size = 3072
-	imgs = np.zeros([num_train, input_size], dtype='float32')
-	labels = np.zeros([num_train], dtype='int32')
-	for i in range(5):
-		data_batch = utils.unpickle(train_filename[i])
-		imgs[i*10000:(i+1)*10000] = data_batch['data']/255.
-		labels[i*10000:(i+1)*10000] = np.asarray(data_batch['labels'])
+	dataset = cifar()
 	
 	gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=calc_gpu_fraction(conf.gpu_fraction))
 	with tf.Session(config=tf.ConfigProto(gpu_options=gpu_options)) as sess:
-		model = classifier.mlp(sess, conf, num_train=num_train, input_size=input_size)
+		model = classifier.mlp(sess, dataset, conf, num_train=dataset.num_train, input_size=dataset.input_size)
 		if conf.model_name == 'cnn':
 			model.build_cnn_model()
 		elif conf.model_name == 'mlp':
 			model.build_mlp_model()
 		else:
 			assert()
-		model.train(imgs, labels)	
+		model.train()	
 
 if __name__ == '__main__':
 	tf.app.run()

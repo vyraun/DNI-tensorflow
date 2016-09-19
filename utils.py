@@ -12,7 +12,7 @@ def unpickle(file):
     return dict
 
 
-def pooling(inputs, kernel_size=None, stride=None, type='max', padding='VALID', name='max'):
+def pooling(inputs, kernel_size=None, stride=None, type='max', padding='SAME', name='pooling'):
 	
 	if kernel_size != None:
 		kernel = [1, kernel_size[0], kernel_size[1], 1]

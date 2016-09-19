@@ -19,16 +19,22 @@ flags = tf.app.flags
 pp = pprint.PrettyPrinter().pprint
 
 tf.app.flags.DEFINE_integer('max_step', 50000, 'Number of batches to run.')
-tf.app.flags.DEFINE_string('checkpoint_dir', './checkpoint/cifar10_train', 'save the ckpt model')
-tf.app.flags.DEFINE_string('gpu_fraction', '1/1', 'define the gpu fraction used')
-tf.app.flags.DEFINE_integer('batch_size', 100, '')
+tf.app.flags.DEFINE_string('model_name', 'cnn', 'model used here')
+tf.app.flags.DEFINE_string('checkpoint_dir', './checkpoint', 'save the ckpt model')
+tf.app.flags.DEFINE_string('gpu_fraction', '1/2', 'define the gpu fraction used')
+tf.app.flags.DEFINE_integer('batch_size', 256, '')
+tf.app.flags.DEFINE_integer('test_batch_size', 256, '')
 tf.app.flags.DEFINE_integer('hidden_size', 1000, '')
 tf.app.flags.DEFINE_integer('output_size', 10, '')
-tf.app.flags.DEFINE_float('init_lr', 0.1, '')
+tf.app.flags.DEFINE_integer('test_per_iter', 1000, '')
+tf.app.flags.DEFINE_integer('max_to_keep', 20, '')
+tf.app.flags.DEFINE_string('optim_type', 'adam', '[exp_decay, adam]')
+# exponetial decay
+#tf.app.flags.DEFINE_float('init_lr', 0.1, '')
 tf.app.flags.DEFINE_float('decay_factor', 0.1, '')
 tf.app.flags.DEFINE_integer('num_epoch_per_decay', 350, '')
-tf.app.flags.DEFINE_integer('test_per_iter', 500, '')
-tf.app.flags.DEFINE_integer('max_to_keep', 20, '')
+# adam optimizer
+tf.app.flags.DEFINE_float('init_lr', 3e-5, '')
 
 conf = flags.FLAGS
 # set random seed
@@ -48,6 +54,7 @@ def main(_):
 
 	attrs = conf.__dict__['__flags']
 	pp(attrs)
+	conf.checkpoint_dir = os.path.join(conf.checkpoint_dir, conf.model_name)
 	# Using CIFAR10
 	num_train = 50000
 	input_size = 3072
@@ -61,7 +68,12 @@ def main(_):
 	gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=calc_gpu_fraction(conf.gpu_fraction))
 	with tf.Session(config=tf.ConfigProto(gpu_options=gpu_options)) as sess:
 		model = classifier.mlp(sess, conf, num_train=num_train, input_size=input_size)
-		model.build_cnn_model()
+		if conf.model_name == 'cnn':
+			model.build_cnn_model()
+		elif conf.model_name == 'mlp':
+			model.build_mlp_model()
+		else:
+			assert()
 		model.train(imgs, labels)	
 
 if __name__ == '__main__':

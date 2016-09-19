@@ -14,6 +14,7 @@ class mlp():
 		self.w = 32
 		self.h = 32
 		self.channel = 3
+		self.optim_type = conf.optim_type
 		self.test_per_iter = conf.test_per_iter
 		self.max_step = conf.max_step
 		self.ckpt_dir = conf.checkpoint_dir
@@ -29,12 +30,15 @@ class mlp():
 		self.var = {}
 
 		self.global_step = tf.get_variable('global_step', [],initializer=tf.constant_initializer(0), trainable=False)
-		decay_steps = int(math.floor(self.num_train/self.batch_size)* conf.num_epoch_per_decay)
-		self.lr = tf.train.exponential_decay(conf.init_lr,
+		if self.optim_type == 'exp_decay':
+			decay_steps = int(math.floor(self.num_train/self.batch_size)* conf.num_epoch_per_decay)
+			self.lr = tf.train.exponential_decay(conf.init_lr,
 							self.global_step, decay_steps,
 							conf.decay_factor,
 							staircase=True)
-		self.optim = tf.train.GradientDescentOptimizer(self.lr)
+			self.optim = tf.train.GradientDescentOptimizer(self.lr)
+		elif self.optim_type == 'adam':
+			self.optim = tf.train.AdamOptimizer(conf.init_lr)	
 
 	def build_mlp_model(self):
 		
@@ -60,14 +64,17 @@ class mlp():
 		self.img_reshape = tf.reshape(self.imgs, [self.batch_size, self.w, self.h, self.channel])	
 		self.h1, self.var['l1_w'], self.var['l1_b'] = conv2d(self.img_reshape, 128, [5,5], [1,1],
 									self.weight_initializer, self.bias_initializer, batch_norm=True, activation_fn=tf.nn.relu, name='l1_con2d')		
-		self.h1 = pooling(self.h1, [3,3], [1,1], type='max')
+		self.h1 = pooling(self.h1, kernel_size=[3,3], stride=[1,1], type='max')
+
 		self.h2, self.var['l2_w'], self.var['l2_b'] = conv2d(self.h1, 128, [5,5], [1,1],
 									self.weight_initializer, self.bias_initializer, batch_norm=True, activation_fn=tf.nn.relu, name='l2_con2d')
-		self.h2 = pooling(self.h2, [3,3], [1,1], type='average')
+		self.h2 = pooling(self.h2, kernel_size=[3,3], stride=[1,1], type='average')
+
 		self.h3, self.var['l3_w'], self.var['l3_b'] = conv2d(self.h2, 128, [5,5], [1,1],
 									self.weight_initializer, self.bias_initializer, batch_norm=True, activation_fn=tf.nn.relu, name='l3_con2d')
-		self.h3 = pooling(self.h3, [3,3], [1,1], type='average')
+		self.h3 = pooling(self.h3, kernel_size=[3,3], stride=[1,1], type='average')
 		self.h3 = tf.reshape(self.h3, [self.batch_size, -1])
+
 		self.out, self.var['l4_w'], self.var['l4_b'] = linear(self.h3, self.output_size,
 									self.weight_initializer, self.bias_initializer, activation_fn=tf.nn.relu, name='l4_linear')
 		self.out_logit = tf.nn.softmax(self.out)
@@ -78,9 +85,9 @@ class mlp():
 
 	def train(self, imgs, labels):
 
+		self.train_op = self.optim.minimize(self.loss, global_step=self.global_step)
 		tf.initialize_all_variables().run()
 		self.saver = tf.train.Saver(max_to_keep=self.max_to_keep)
-		self.train_op = self.optim.minimize(self.loss, global_step=self.global_step)
 		for epoch_idx in range(int(self.max_epoch)):
 			index = np.arange(self.num_train)
 			np.random.shuffle(index)

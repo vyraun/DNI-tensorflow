@@ -8,7 +8,7 @@ flags = tf.app.flags
 pp = pprint.PrettyPrinter().pprint
 
 tf.app.flags.DEFINE_integer('max_step', 50000, 'Number of batches to run.')
-tf.app.flags.DEFINE_string('model_name', 'cnn', 'model used here')
+tf.app.flags.DEFINE_string('model_name', 'mlp', 'model used here')
 tf.app.flags.DEFINE_string('checkpoint_dir', './checkpoint', 'save the ckpt model')
 tf.app.flags.DEFINE_string('gpu_fraction', '1/2', 'define the gpu fraction used')
 tf.app.flags.DEFINE_integer('batch_size', 256, '')
@@ -19,9 +19,11 @@ tf.app.flags.DEFINE_integer('test_per_iter', 1000, '')
 tf.app.flags.DEFINE_integer('max_to_keep', 20, '')
 tf.app.flags.DEFINE_string('optim_type', 'adam', '[exp_decay, adam]')
 # exponetial decay
-#tf.app.flags.DEFINE_float('init_lr', 0.1, '')
+'''
+tf.app.flags.DEFINE_float('init_lr', 0.1, '')
 tf.app.flags.DEFINE_float('decay_factor', 0.1, '')
 tf.app.flags.DEFINE_integer('num_epoch_per_decay', 350, '')
+'''
 # adam optimizer
 tf.app.flags.DEFINE_float('init_lr', 3e-5, '')
 

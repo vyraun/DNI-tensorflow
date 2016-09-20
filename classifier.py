@@ -3,7 +3,9 @@ import numpy as np
 import math
 import os
 from utils import linear, unpickle, conv2d, pooling
+from dni import synthetic_grad
 from tensorflow.contrib.layers.python.layers import initializers
+import pdb
 
 class mlp():
 
@@ -59,6 +61,11 @@ class mlp():
 		self.loss = tf.nn.sparse_softmax_cross_entropy_with_logits(self.out, self.labels)
 		self.loss = tf.reduce_sum(self.loss)/self.batch_size
 
+		# Decouple Neural Interface	
+		self.synthetic_grad1 = synthetic_grad(self.h1.get_shape(), name='synthetic_grad1')
+		self.synthetic_grad2 = synthetic_grad(self.h2.get_shape(), name='synthetic_grad2')
+		self.synthetic_grad3 = synthetic_grad(self.h3.get_shape(), name='synthetic_grad3')
+	'''
 	def build_cnn_model(self):
 		
 		self.imgs = tf.placeholder('float32', [self.batch_size, self.input_dims])
@@ -83,9 +90,11 @@ class mlp():
 		self.labels = tf.placeholder('int32', [self.batch_size])
 		self.loss = tf.nn.sparse_softmax_cross_entropy_with_logits(self.out, self.labels)
 		self.loss = tf.reduce_sum(self.loss)/self.batch_size
+	'''
 
 	def train(self):
 
+		pdb.set_trace()
 		self.train_op = self.optim.minimize(self.loss, global_step=self.global_step)
 		tf.initialize_all_variables().run()
 		self.saver = tf.train.Saver(max_to_keep=self.max_to_keep)

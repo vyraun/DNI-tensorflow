@@ -19,9 +19,11 @@ tf.app.flags.DEFINE_integer('test_per_iter', 1000, '')
 tf.app.flags.DEFINE_integer('max_to_keep', 20, '')
 tf.app.flags.DEFINE_string('optim_type', 'adam', '[exp_decay, adam]')
 # exponetial decay
-#tf.app.flags.DEFINE_float('init_lr', 0.1, '')
+'''
+tf.app.flags.DEFINE_float('init_lr', 0.1, '')
 tf.app.flags.DEFINE_float('decay_factor', 0.1, '')
 tf.app.flags.DEFINE_integer('num_epoch_per_decay', 350, '')
+'''
 # adam optimizer
 tf.app.flags.DEFINE_float('init_lr', 3e-5, '')
 
@@ -59,3 +61,4 @@ def main(_):
 
 if __name__ == '__main__':
 	tf.app.run()
+

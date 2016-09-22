@@ -62,3 +62,4 @@ class cifar():
 		self.current = end
 		return imgs, labels
 			
+

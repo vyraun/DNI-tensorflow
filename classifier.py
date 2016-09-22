@@ -4,6 +4,7 @@ import math
 import os
 from utils import linear, unpickle, conv2d, pooling
 from tensorflow.contrib.layers.python.layers import initializers
+import pdb
 
 class mlp():
 
@@ -29,6 +30,10 @@ class mlp():
 		self.max_to_keep = conf.max_to_keep
 		self.dataset = dataset
 		self.var = {}
+		self.grad_output = {}
+		self.synthetic_grad = {}
+		self.layer_out = {}
+		self.grad_loss = []
 
 		self.global_step = tf.get_variable('global_step', [],initializer=tf.constant_initializer(0), trainable=False)
 		if self.optim_type == 'exp_decay':
@@ -45,19 +50,29 @@ class mlp():
 		
 		self.imgs = tf.placeholder('float32',[self.batch_size, self.input_dims])
 
-		self.h1, self.var['l1_w'], self.var['l1_b'] = linear(self.imgs, self.hidden_size, 
-							self.weight_initializer, self.bias_initializer, activation_fn=tf.nn.relu, name='l1_linear')
-		self.h2, self.var['l2_w'], self.var['l2_b'] = linear(self.h1, self.hidden_size,
-							self.weight_initializer, self.bias_initializer, activation_fn=tf.nn.relu, name='l2_linear')
-		self.h3, self.var['l3_w'], self.var['l3_b'] = linear(self.h2, self.hidden_size, 
-							self.weight_initializer, self.bias_initializer, activation_fn=tf.nn.relu, name='l3_linear')
-		self.out, self.var['l4_w'], self.var['l4_b'] = linear(self.h3, self.output_size, 
-							self.weight_initializer, self.bias_initializer, activation_fn=tf.nn.relu, name='l4_linear')
-		self.out_logit = tf.nn.softmax(self.out)
+		self.layer_out['l1'], self.var['l1_w'], self.var['l1_b'], self.synthetic_grad['l1'] = linear(self.imgs, self.hidden_size,
+							self.weight_initializer, self.bias_initializer, synthetic=True, activation_fn=tf.nn.relu, name='l1_linear')
+		self.layer_out['l2'], self.var['l2_w'], self.var['l2_b'], self.synthetic_grad['l2'] = linear(self.layer_out['l1'], self.hidden_size,
+							self.weight_initializer, self.bias_initializer, synthetic=True, activation_fn=tf.nn.relu, name='l2_linear')
+		self.layer_out['l3'], self.var['l3_w'], self.var['l3_b'], self.synthetic_grad['l3'] = linear(self.layer_out['l2'], self.hidden_size,
+							self.weight_initializer, self.bias_initializer, synthetic=True, activation_fn=tf.nn.relu, name='l3_linear')
+		self.layer_out['l4'], self.var['l4_w'], self.var['l4_b'], self.synthetic_grad['l4'] = linear(self.layer_out['l3'], self.output_size,
+							self.weight_initializer, self.bias_initializer, synthetic=True, activation_fn=tf.nn.relu, name='l4_linear')
+
+		self.out_logit = tf.nn.softmax(self.layer_out['l4'])
 		self.out_argmax = tf.argmax(self.out_logit, 1)
 		self.labels = tf.placeholder('int32', [self.batch_size])
-		self.loss = tf.nn.sparse_softmax_cross_entropy_with_logits(self.out, self.labels)
-		self.loss= tf.reduce_mean(self.loss)
+		self.loss_entropy = tf.nn.sparse_softmax_cross_entropy_with_logits(self.layer_out['l4'], self.labels)
+		self.loss = tf.reduce_mean(self.loss_entropy)
+
+		self.grad_output['l1'] = tf.gradients(self.loss, self.layer_out['l1'])
+		self.grad_output['l2'] = tf.gradients(self.loss, self.layer_out['l2'])
+		self.grad_output['l3'] = tf.gradients(self.loss, self.layer_out['l3'])
+		self.grad_output['l4'] = tf.gradients(self.loss, self.layer_out['l4'])
+	
+		for k in self.grad_output.keys():
+			self.grad_loss.append(tf.reduce_sum(tf.square(self.synthetic_grad[k]-self.grad_output[k])))
+		self.grad_total_loss = sum(self.grad_loss)
 
 	def build_cnn_model(self):
 		
@@ -81,26 +96,36 @@ class mlp():
 		self.out_logit = tf.nn.softmax(self.out)
 		self.out_argmax = tf.argmax(self.out_logit, 1)
 		self.labels = tf.placeholder('int32', [self.batch_size])
-		self.loss = tf.nn.sparse_softmax_cross_entropy_with_logits(self.out, self.labels)
-		self.loss = tf.reduce_sum(self.loss)/self.batch_size
+		self.loss_entropy = tf.nn.sparse_softmax_cross_entropy_with_logits(self.out, self.labels)
+		self.loss = tf.reduce_sum(self.loss_entropy)/self.batch_size
 
 	def train(self):
 
-		self.train_op = self.optim.minimize(self.loss, global_step=self.global_step)
+		grads_and_vars = []
+		for var in tf.trainable_variables():
+			if 'synthetic' in var.name:
+				grads_and_vars.append(self.optim.compute_gradients(self.grad_total_loss, var_list=[var])[0])
+			else:
+				for k in self.grad_output.keys():
+					if k in var.name:
+						grads = tf.gradients(self.layer_out[k], var, self.grad_output[k])[0]
+						grads_and_vars.append((grads,var))
+		# minimize the gradient loss and only change the dni module
+		self.train_op = self.optim.apply_gradients(grads_and_vars, global_step=self.global_step)
 		tf.initialize_all_variables().run()
 		self.saver = tf.train.Saver(max_to_keep=self.max_to_keep)
 		for epoch_idx in range(int(self.max_epoch)):
 			for idx in range(int(math.floor(self.num_train/self.batch_size))):
 				img_batch, label_batch = self.dataset.sequential_sample(self.batch_size)
-				_, loss = self.sess.run([self.train_op, self.loss],{
+				_, grad_loss, loss = self.sess.run([self.train_op, self.grad_total_loss, self.loss], {
 							self.imgs: img_batch,
 							self.labels: label_batch
 							})
-				print "[*] Iter {}, loss={}".format(int(self.global_step.eval()), loss)
+				print "[*] Iter {}, syn_grad_loss={}, real_loss={}".format(int(self.global_step.eval()), grad_loss, loss)
 				if self.global_step.eval()%self.test_per_iter == 0 or self.global_step.eval()==1:
 					self.evaluate(split='train')
 					self.evaluate(split='test')
-	
+
 	def evaluate(self, imgs=None, labels=None, split='test'):
 	
 		if split == 'test':
@@ -135,5 +160,6 @@ class mlp():
 		if not os.path.exists(self.ckpt_dir):
 			os.makedirs(self.ckpt_dir)
 		self.saver.save(self.sess, os.path.join(self.ckpt_dir, name), global_step=int(self.global_step.eval()))
+
 
 

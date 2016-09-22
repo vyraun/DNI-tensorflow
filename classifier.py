@@ -58,11 +58,12 @@ class mlp():
 		self.out, self.var['l4_w'], self.var['l4_b'], self.synthetic_grad['l4'] = linear(self.h3, self.output_size,
 							self.weight_initializer, self.bias_initializer, synthetic=True, activation_fn=tf.nn.relu, name='l4_linear')
 
-		self.out_logit = tf.nn.softmax(self.out)
-		self.out_argmax = tf.argmax(self.out_logit, 1)
+		#self.out_logit = tf.nn.softmax(self.out)
+		#self.out_argmax = tf.argmax(self.out_logit, 1)
 		self.labels = tf.placeholder('int32', [self.batch_size])
-		self.loss_entropy = tf.nn.sparse_softmax_cross_entropy_with_logits(self.out, self.labels)
-		self.loss = tf.reduce_sum(self.loss_entropy)/self.batch_size
+		self.labels_dense = tf.sparse_to_dense(self.labels, [self.batch_size, self.output_size], sparse_values=1.)
+		self.loss_entropy = tf.nn.softmax_cross_entropy_with_logits(self.out, self.labels_dense)
+		self.loss = tf.reduce_mean(self.loss_entropy)
 
 		self.grad_output['l1'] = tf.gradients(self.loss, self.h1)
 		self.grad_output['l2'] = tf.gradients(self.loss, self.h2)
@@ -102,7 +103,9 @@ class mlp():
 
 		dni_grad = []
 		grads_and_vars = []
+		pdb.set_trace()
 		for var in tf.trainable_variables():
+			print var.name
 			if 'synthetic' in var.name:
 				grads_and_vars.append(self.optim.compute_gradients(self.grad_total_loss, var_list=[var])[0])
 			else:

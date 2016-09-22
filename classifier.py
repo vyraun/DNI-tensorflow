@@ -32,6 +32,7 @@ class mlp():
 		self.var = {}
 		self.grad_output = {}
 		self.synthetic_grad = {}
+		self.layer_out = {}
 		self.grad_loss = []
 
 		self.global_step = tf.get_variable('global_step', [],initializer=tf.constant_initializer(0), trainable=False)
@@ -49,26 +50,25 @@ class mlp():
 		
 		self.imgs = tf.placeholder('float32',[self.batch_size, self.input_dims])
 
-		self.h1, self.var['l1_w'], self.var['l1_b'], self.synthetic_grad['l1'] = linear(self.imgs, self.hidden_size,
+		self.layer_out['l1'], self.var['l1_w'], self.var['l1_b'], self.synthetic_grad['l1'] = linear(self.imgs, self.hidden_size,
 							self.weight_initializer, self.bias_initializer, synthetic=True, activation_fn=tf.nn.relu, name='l1_linear')
-		self.h2, self.var['l2_w'], self.var['l2_b'], self.synthetic_grad['l2'] = linear(self.h1, self.hidden_size,
+		self.layer_out['l2'], self.var['l2_w'], self.var['l2_b'], self.synthetic_grad['l2'] = linear(self.layer_out['l1'], self.hidden_size,
 							self.weight_initializer, self.bias_initializer, synthetic=True, activation_fn=tf.nn.relu, name='l2_linear')
-		self.h3, self.var['l3_w'], self.var['l3_b'], self.synthetic_grad['l3'] = linear(self.h2, self.hidden_size,
+		self.layer_out['l3'], self.var['l3_w'], self.var['l3_b'], self.synthetic_grad['l3'] = linear(self.layer_out['l2'], self.hidden_size,
 							self.weight_initializer, self.bias_initializer, synthetic=True, activation_fn=tf.nn.relu, name='l3_linear')
-		self.out, self.var['l4_w'], self.var['l4_b'], self.synthetic_grad['l4'] = linear(self.h3, self.output_size,
+		self.layer_out['l4'], self.var['l4_w'], self.var['l4_b'], self.synthetic_grad['l4'] = linear(self.layer_out['l3'], self.output_size,
 							self.weight_initializer, self.bias_initializer, synthetic=True, activation_fn=tf.nn.relu, name='l4_linear')
 
-		#self.out_logit = tf.nn.softmax(self.out)
-		#self.out_argmax = tf.argmax(self.out_logit, 1)
+		self.out_logit = tf.nn.softmax(self.layer_out['l4'])
+		self.out_argmax = tf.argmax(self.out_logit, 1)
 		self.labels = tf.placeholder('int32', [self.batch_size])
-		self.labels_dense = tf.sparse_to_dense(self.labels, [self.batch_size, self.output_size], sparse_values=1.)
-		self.loss_entropy = tf.nn.softmax_cross_entropy_with_logits(self.out, self.labels_dense)
+		self.loss_entropy = tf.nn.sparse_softmax_cross_entropy_with_logits(self.layer_out['l4'], self.labels)
 		self.loss = tf.reduce_mean(self.loss_entropy)
 
-		self.grad_output['l1'] = tf.gradients(self.loss, self.h1)
-		self.grad_output['l2'] = tf.gradients(self.loss, self.h2)
-		self.grad_output['l3'] = tf.gradients(self.loss, self.h3)
-		self.grad_output['l4'] = tf.gradients(self.loss, self.out)
+		self.grad_output['l1'] = tf.gradients(self.loss, self.layer_out['l1'])
+		self.grad_output['l2'] = tf.gradients(self.loss, self.layer_out['l2'])
+		self.grad_output['l3'] = tf.gradients(self.loss, self.layer_out['l3'])
+		self.grad_output['l4'] = tf.gradients(self.loss, self.layer_out['l4'])
 	
 		for k in self.grad_output.keys():
 			self.grad_loss.append(tf.reduce_sum(tf.square(self.synthetic_grad[k]-self.grad_output[k])))
@@ -101,19 +101,15 @@ class mlp():
 
 	def train(self):
 
-		dni_grad = []
 		grads_and_vars = []
-		pdb.set_trace()
 		for var in tf.trainable_variables():
-			print var.name
 			if 'synthetic' in var.name:
 				grads_and_vars.append(self.optim.compute_gradients(self.grad_total_loss, var_list=[var])[0])
 			else:
 				for k in self.grad_output.keys():
 					if k in var.name:
-						grads = tf.gradients(self.loss, var, self.grad_output[k])[0]
+						grads = tf.gradients(self.layer_out[k], var, self.grad_output[k])[0]
 						grads_and_vars.append((grads,var))
-
 		# minimize the gradient loss and only change the dni module
 		self.train_op = self.optim.apply_gradients(grads_and_vars, global_step=self.global_step)
 		tf.initialize_all_variables().run()
@@ -121,22 +117,14 @@ class mlp():
 		for epoch_idx in range(int(self.max_epoch)):
 			for idx in range(int(math.floor(self.num_train/self.batch_size))):
 				img_batch, label_batch = self.dataset.sequential_sample(self.batch_size)
-				pdb.set_trace()
 				_, grad_loss, loss = self.sess.run([self.train_op, self.grad_total_loss, self.loss], {
 							self.imgs: img_batch,
 							self.labels: label_batch
 							})
-				pdb.set_trace()
-				'''
-				_, loss = self.sess.run([self.train_op, self.loss],{
-							self.imgs: img_batch,
-							self.labels: label_batch
-							})
-				print "[*] Iter {}, loss={}".format(int(self.global_step.eval()), loss)
+				print "[*] Iter {}, syn_grad_loss={}, real_loss={}".format(int(self.global_step.eval()), grad_loss, loss)
 				if self.global_step.eval()%self.test_per_iter == 0 or self.global_step.eval()==1:
 					self.evaluate(split='train')
 					self.evaluate(split='test')
-				'''
 
 	def evaluate(self, imgs=None, labels=None, split='test'):
 	

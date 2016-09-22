@@ -57,7 +57,7 @@ class mlp():
 		self.out_argmax = tf.argmax(self.out_logit, 1)
 		self.labels = tf.placeholder('int32', [self.batch_size])
 		self.loss = tf.nn.sparse_softmax_cross_entropy_with_logits(self.out, self.labels)
-		self.loss = tf.reduce_sum(self.loss)/self.batch_size
+		self.loss= tf.reduce_mean(self.loss)
 
 	def build_cnn_model(self):
 		

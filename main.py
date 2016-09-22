@@ -8,7 +8,7 @@ flags = tf.app.flags
 pp = pprint.PrettyPrinter().pprint
 
 tf.app.flags.DEFINE_integer('max_step', 50000, 'Number of batches to run.')
-tf.app.flags.DEFINE_string('model_name', 'cnn', 'model used here')
+tf.app.flags.DEFINE_string('model_name', 'mlp', 'model used here')
 tf.app.flags.DEFINE_string('checkpoint_dir', './checkpoint', 'save the ckpt model')
 tf.app.flags.DEFINE_string('gpu_fraction', '1/2', 'define the gpu fraction used')
 tf.app.flags.DEFINE_integer('batch_size', 256, '')

@@ -15,9 +15,10 @@ tf.app.flags.DEFINE_integer('batch_size', 256, '')
 tf.app.flags.DEFINE_integer('test_batch_size', 256, '')
 tf.app.flags.DEFINE_integer('hidden_size', 1000, '')
 tf.app.flags.DEFINE_integer('output_size', 10, '')
-tf.app.flags.DEFINE_integer('test_per_iter', 1000, '')
+tf.app.flags.DEFINE_integer('test_per_iter', 50, '')
 tf.app.flags.DEFINE_integer('max_to_keep', 20, '')
 tf.app.flags.DEFINE_string('optim_type', 'adam', '[exp_decay, adam]')
+tf.app.flags.DEFINE_boolean('synthetic', False, 'use synthetic gradients or not')
 # exponetial decay
 '''
 tf.app.flags.DEFINE_float('init_lr', 0.1, '')

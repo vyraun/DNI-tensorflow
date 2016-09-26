@@ -6,7 +6,7 @@ from utils import linear, unpickle, conv2d, pooling
 from tensorflow.contrib.layers.python.layers import initializers
 import pdb
 
-class mlp():
+class Model():
 
 	def __init__(self, sess, dataset, conf, num_train=50000, input_size=3072, test_filename='/data2/andrewliao11/cifar-10-batches-py/test_batch'):
 

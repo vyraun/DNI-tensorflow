@@ -51,7 +51,7 @@ def main(_):
 	
 	gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=calc_gpu_fraction(conf.gpu_fraction))
 	with tf.Session(config=tf.ConfigProto(gpu_options=gpu_options)) as sess:
-		model = classifier.mlp(sess, dataset, conf, num_train=dataset.num_train, input_size=dataset.input_size)
+		model = classifier.Model(sess, dataset, conf, num_train=dataset.num_train, input_size=dataset.input_size)
 		if conf.model_name == 'cnn':
 			model.build_cnn_model()
 		elif conf.model_name == 'mlp':

@@ -41,9 +41,12 @@ DNI-mlp test on cifar10
 |---|---|
 |![](https://github.com/andrewliao11/DNI-tensorflow/blob/master/misc/dni_mlp_test_acc.png?raw=true) |![](https://github.com/andrewliao11/DNI-tensorflow/blob/master/misc/dni_mlp_train_acc.png?raw=true)|
 
-## Implementation Details
-For mlp model:  
-Currently I use 3 hidden layers and achieve accuracy near 50%. Each hidden layer is followed with batch normalization and ReLU. 
+## Something Beautiful in Tensorflow
+Tensorflow is known for the convenience of auto-gradient, while at the same time many people don't know how it do the backprop or calculate the backprop. And compared to Torch, there's no obvious way to access the gradOutput, gradInput. Actually, Tensorflow contain some beautiful function that makes it easier and more flexible.   
+Sometimes, you might want to calculate gradient dy/dx:   
+Use ```tf.gradients(y,x)```. It's very simple
+If you want to calculate the gradientm given the gradient backprop from the loss, or sth you've defined (dy/dx = dy/du*du/dx, given dy/du):
+Use ```tf.gradients(y,x,dy/du)```.
 
 ## Reference
 - Deepmind's [post](https://deepmind.com/blog/decoupled-neural-networks-using-synthetic-gradients/) on Decoupled Neural Interfaces Using Synthetic Gradients

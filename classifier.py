@@ -51,13 +51,24 @@ class mlp():
 		
 		self.imgs = tf.placeholder('float32',[self.batch_size, self.input_dims])
 
-		self.layer_out['l1'], self.var['l1_w'], self.var['l1_b'], self.synthetic_grad['l1'] = linear(self.imgs, self.hidden_size,
+		# quite annoyed
+		if self.synthetic:
+			self.layer_out['l1'], self.var['l1_w'], self.var['l1_b'], self.synthetic_grad['l1'] = linear(self.imgs, self.hidden_size,
 							self.weight_initializer, self.bias_initializer, synthetic=self.synthetic, activation_fn=tf.nn.relu, name='l1_linear')
-		self.layer_out['l2'], self.var['l2_w'], self.var['l2_b'], self.synthetic_grad['l2'] = linear(self.layer_out['l1'], self.hidden_size,
+			self.layer_out['l2'], self.var['l2_w'], self.var['l2_b'], self.synthetic_grad['l2'] = linear(self.layer_out['l1'], self.hidden_size,
 							self.weight_initializer, self.bias_initializer, synthetic=self.synthetic, activation_fn=tf.nn.relu, name='l2_linear')
-		self.layer_out['l3'], self.var['l3_w'], self.var['l3_b'], self.synthetic_grad['l3'] = linear(self.layer_out['l2'], self.hidden_size,
+			self.layer_out['l3'], self.var['l3_w'], self.var['l3_b'], self.synthetic_grad['l3'] = linear(self.layer_out['l2'], self.hidden_size,
 							self.weight_initializer, self.bias_initializer, synthetic=self.synthetic, activation_fn=tf.nn.relu, name='l3_linear')
-		self.layer_out['l4'], self.var['l4_w'], self.var['l4_b'], self.synthetic_grad['l4'] = linear(self.layer_out['l3'], self.output_size,
+			self.layer_out['l4'], self.var['l4_w'], self.var['l4_b'], self.synthetic_grad['l4'] = linear(self.layer_out['l3'], self.output_size,
+							self.weight_initializer, self.bias_initializer, synthetic=self.synthetic, activation_fn=tf.nn.relu, name='l4_linear')
+		else:
+			self.layer_out['l1'], self.var['l1_w'], self.var['l1_b'] = linear(self.imgs, self.hidden_size,
+							self.weight_initializer, self.bias_initializer, synthetic=self.synthetic, activation_fn=tf.nn.relu, name='l1_linear')
+			self.layer_out['l2'], self.var['l2_w'], self.var['l2_b'] = linear(self.layer_out['l1'], self.hidden_size,
+							self.weight_initializer, self.bias_initializer, synthetic=self.synthetic, activation_fn=tf.nn.relu, name='l2_linear')
+			self.layer_out['l3'], self.var['l3_w'], self.var['l3_b'] = linear(self.layer_out['l2'], self.hidden_size,
+							self.weight_initializer, self.bias_initializer, synthetic=self.synthetic, activation_fn=tf.nn.relu, name='l3_linear')
+			self.layer_out['l4'], self.var['l4_w'], self.var['l4_b'] = linear(self.layer_out['l3'], self.output_size,
 							self.weight_initializer, self.bias_initializer, synthetic=self.synthetic, activation_fn=tf.nn.relu, name='l4_linear')
 
 		self.out_logit = tf.nn.softmax(self.layer_out['l4'])
@@ -80,26 +91,54 @@ class mlp():
 		
 		self.imgs = tf.placeholder('float32', [self.batch_size, self.input_dims])
 		self.img_reshape = tf.reshape(self.imgs, [self.batch_size, self.w, self.h, self.channel])	
-		self.h1, self.var['l1_w'], self.var['l1_b'] = conv2d(self.img_reshape, 128, [5,5], [1,1],
+		if self.synthetic:
+			self.layer_out['l1'], self.var['l1_w'], self.var['l1_b'], self.synthetic_grad['l1'] = conv2d(self.img_reshape, 128, [5,5], [1,1],
+									self.weight_initializer, self.bias_initializer, synthetic=True, batch_norm=True, activation_fn=tf.nn.relu, name='l1_con2d')		
+			self.layer_out['l1_pool'] = pooling(self.layer_out['l1'], kernel_size=[3,3], stride=[1,1], type='max')
+
+			self.layer_out['l2'], self.var['l2_w'], self.var['l2_b'], self.synthetic_grad['l2'] = conv2d(self.layer_out['l1_pool'], 128, [5,5], [1,1],
+									self.weight_initializer, self.bias_initializer, synthetic=True, batch_norm=True, activation_fn=tf.nn.relu, name='l2_con2d')
+			self.layer_out['l2_pool'] = pooling(self.layer_out['l2'], kernel_size=[3,3], stride=[1,1], type='average')
+
+			self.layer_out['l3'], self.var['l3_w'], self.var['l3_b'], self.synthetic_grad['l3'] = conv2d(self.layer_out['l2_pool'], 128, [5,5], [1,1],
+									self.weight_initializer, self.bias_initializer, synthetic=True, batch_norm=True, activation_fn=tf.nn.relu, name='l3_con2d')
+			self.layer_out['l3_pool'] = pooling(self.layer_out['l3'], kernel_size=[3,3], stride=[1,1], type='average')
+			self.layer_out['l3_reshape'] = tf.reshape(self.layer_out['l3_pool'], [self.batch_size, -1])
+
+			self.layer_out['l4'], self.var['l4_w'], self.var['l4_b'], self.synthetic_grad['l4'] = linear(self.layer_out['l3_reshape'], self.output_size,
+									self.weight_initializer, self.bias_initializer, synthetic=True, activation_fn=tf.nn.relu, name='l4_linear')
+		else:
+			self.layer_out['l1'], self.var['l1_w'], self.var['l1_b'] = conv2d(self.img_reshape, 128, [5,5], [1,1],
 									self.weight_initializer, self.bias_initializer, batch_norm=True, activation_fn=tf.nn.relu, name='l1_con2d')		
-		self.h1 = pooling(self.h1, kernel_size=[3,3], stride=[1,1], type='max')
+			self.layer_out['l1_pool'] = pooling(self.layer_out['l1'], kernel_size=[3,3], stride=[1,1], type='max')
 
-		self.h2, self.var['l2_w'], self.var['l2_b'] = conv2d(self.h1, 128, [5,5], [1,1],
+			self.layer_out['l2'], self.var['l2_w'], self.var['l2_b'] = conv2d(self.layer_out['l1_pool'], 128, [5,5], [1,1],
 									self.weight_initializer, self.bias_initializer, batch_norm=True, activation_fn=tf.nn.relu, name='l2_con2d')
-		self.h2 = pooling(self.h2, kernel_size=[3,3], stride=[1,1], type='average')
+			self.layer_out['l2_pool'] = pooling(self.layer_out['l2'], kernel_size=[3,3], stride=[1,1], type='average')
 
-		self.h3, self.var['l3_w'], self.var['l3_b'] = conv2d(self.h2, 128, [5,5], [1,1],
+			self.layer_out['l3'], self.var['l3_w'], self.var['l3_b'] = conv2d(self.layer_out['l2_pool'], 128, [5,5], [1,1],
 									self.weight_initializer, self.bias_initializer, batch_norm=True, activation_fn=tf.nn.relu, name='l3_con2d')
-		self.h3 = pooling(self.h3, kernel_size=[3,3], stride=[1,1], type='average')
-		self.h3 = tf.reshape(self.h3, [self.batch_size, -1])
+			self.layer_out['l3_pool'] = pooling(self.layer_out['l3'], kernel_size=[3,3], stride=[1,1], type='average')
+			self.layer_out['l3_reshape'] = tf.reshape(self.layer_out['l3_pool'], [self.batch_size, -1])
 
-		self.out, self.var['l4_w'], self.var['l4_b'] = linear(self.h3, self.output_size,
+			self.layer_out['l4'], self.var['l4_w'], self.var['l4_b'] = linear(self.layer_out['l3_reshape'], self.output_size,
 									self.weight_initializer, self.bias_initializer, activation_fn=tf.nn.relu, name='l4_linear')
-		self.out_logit = tf.nn.softmax(self.out)
+
+		self.out_logit = tf.nn.softmax(self.layer_out['l4'])
 		self.out_argmax = tf.argmax(self.out_logit, 1)
 		self.labels = tf.placeholder('int32', [self.batch_size])
-		self.loss_entropy = tf.nn.sparse_softmax_cross_entropy_with_logits(self.out, self.labels)
+		self.loss_entropy = tf.nn.sparse_softmax_cross_entropy_with_logits(self.layer_out['l4'], self.labels)
 		self.loss = tf.reduce_sum(self.loss_entropy)/self.batch_size
+
+		if self.synthetic:
+			self.grad_output['l1'] = tf.gradients(self.loss, self.layer_out['l1'])
+			self.grad_output['l2'] = tf.gradients(self.loss, self.layer_out['l2'])
+			self.grad_output['l3'] = tf.gradients(self.loss, self.layer_out['l3'])
+			self.grad_output['l4'] = tf.gradients(self.loss, self.layer_out['l4'])
+	
+			for k in self.grad_output.keys():
+				self.grad_loss.append(tf.reduce_sum(tf.square(self.synthetic_grad[k]-self.grad_output[k])))
+			self.grad_total_loss = sum(self.grad_loss)
 
 	def train(self):
 
@@ -116,7 +155,7 @@ class mlp():
 			# minimize the gradient loss and only change the dni module
 			self.train_op = self.optim.apply_gradients(grads_and_vars, global_step=self.global_step)
 		else:
-			self.train_op = slef.optim.minimize(self.loss, global_step=self.global_step)
+			self.train_op = self.optim.minimize(self.loss, global_step=self.global_step)
 
 		tf.initialize_all_variables().run()
 		self.saver = tf.train.Saver(max_to_keep=self.max_to_keep)

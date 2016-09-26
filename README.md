@@ -8,7 +8,6 @@ I implement the ***[Decoupled Neural Interfaces using Synthetic Gradients](http:
 
 ## TODO
 - apply cDNI
-- apply to conv2d
 - apply to some more complicated network to see if it's general
 
 ## What's synthetic gradients?
@@ -25,9 +24,10 @@ model_name = mlp                  # the ckpt will save in $checkpoint_path/$mode
 checkpoint_dir = './checkpoint'   # the checkpint directory
 gpu_fraction = 1/2 # you can define the gpu memory usage
 batch_size = 256
-hidden_size = 1000                # hidden size of the mlp
+hidden_size = 1000             	  # hidden size of the mlp
 test_per_iter = 50
 optim_type = adam
+synthetic = False                 # ues synthetic gradient or not	
 ```
 
 ## Experiment Result

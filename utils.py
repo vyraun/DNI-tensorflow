@@ -31,26 +31,36 @@ def pooling(inputs, kernel_size=None, stride=None, type='max', padding='SAME', n
 
 def conv2d(inputs, output_size, kernel_size, stride, 
 			weights_initializer=tf.contrib.layers.xavier_initializer(),
-			biases_initializer=tf.zeros_initializer,
+			biases_initializer=tf.zeros_initializer, synthetic=False,
 			batch_norm = True,
 			activation_fn=tf.nn.relu, padding='SAME', name='conv2d'):
 	
+	var = {}
 	kernel_shape = [kernel_size[0], kernel_size[1], inputs.get_shape()[-1], output_size]
 	stride  = [1, 1, stride[0], stride[1]]
 	with tf.variable_scope(name):
-		w = tf.get_variable('w', kernel_shape,
+		var['w'] = tf.get_variable('w', kernel_shape,
 			tf.float32, initializer=weights_initializer)
-		conv = tf.nn.conv2d(inputs, w, stride, padding=padding)
-		b = tf.get_variable('b', [output_size], tf.float32, initializer=biases_initializer)
-		out = tf.nn.bias_add(conv, b)
+		conv = tf.nn.conv2d(inputs, var['w'], stride, padding=padding)
+		var['b'] = tf.get_variable('b', [output_size], tf.float32, initializer=biases_initializer)
+		out = tf.nn.bias_add(conv, var['b'])
 		
-	if batch_norm:
-		out = tf.contrib.layers.batch_norm(out)
+		if batch_norm:
+			out = tf.contrib.layers.batch_norm(out)
+		if activation_fn != None:
+			out = activation_fn(out)
 
-	if activation_fn != None:
-		out = activation_fn(out)
-
-	return out, w, b
+		if synthetic:
+			out_shape = out.get_shape()
+			h1, var['l1_w'], var['l1_b'] = conv2d(out, 128, [5,5], [1,1],
+								tf.zeros_initializer, tf.zeros_initializer, batch_norm=True, activation_fn=tf.nn.relu, name='l1')
+			h2, var['l2_w'], var['l2_b'] = conv2d(h1, 128, [5,5], [1,1],
+								tf.zeros_initializer, tf.zeros_initializer, batch_norm=True, activation_fn=tf.nn.relu, name='l2')
+			synthetic_grad, var['l3_w'], var['l3_b'] = conv2d(h2, 128, [5,5], [1,1],
+								tf.zeros_initializer, tf.zeros_initializer, batch_norm=False, activation_fn=None, name='l3')
+			return out, var['w'], var['b'], synthetic_grad
+		else:		
+			return out, var['w'], var['b']
 
 def linear(inputs, output_size,
 			weights_initializer=initializers.xavier_initializer(),

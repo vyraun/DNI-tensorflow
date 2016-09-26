@@ -42,10 +42,10 @@ DNI-mlp test on cifar10
 |![](https://github.com/andrewliao11/DNI-tensorflow/blob/master/misc/dni_mlp_test_acc.png?raw=true) |![](https://github.com/andrewliao11/DNI-tensorflow/blob/master/misc/dni_mlp_train_acc.png?raw=true)|
 
 ## Something Beautiful in Tensorflow
-Tensorflow is known for the convenience of auto-gradient, while at the same time many people don't know how it do the backprop or calculate the backprop. And compared to Torch, there's no obvious way to access the gradOutput, gradInput. Actually, Tensorflow contain some beautiful function that makes it easier and more flexible.   
+Tensorflow is known for the convenience of **auto-gradient**, while at the same time many people don't know how it do the backprop or calculate the backprop. Compared to Torch, there's no obvious way to access the ```gradOutput```, ```gradInput```. Actually, Tensorflow contains some beautiful function that makes it easier and more flexible.   
 Sometimes, you might want to calculate gradient dy/dx:   
 Use ```tf.gradients(y,x)```. It's very simple
-If you want to calculate the gradientm given the gradient backprop from the loss, or sth you've defined (dy/dx = dy/du*du/dx, given dy/du):
+If you want to calculate the gradientm given the gradient backprop from the loss, or sth you've defined (dy/dx = dy/du*du/dx, given dy/du):   
 Use ```tf.gradients(y,x,dy/du)```.
 
 ## Reference

@@ -10,7 +10,7 @@ pp = pprint.PrettyPrinter().pprint
 tf.app.flags.DEFINE_integer('max_step', 50000, 'Number of batches to run.')
 tf.app.flags.DEFINE_string('model_name', 'cnn', 'model used here')
 tf.app.flags.DEFINE_string('checkpoint_dir', './checkpoint', 'save the ckpt model')
-tf.app.flags.DEFINE_string('gpu_fraction', '1/2', 'define the gpu fraction used')
+tf.app.flags.DEFINE_string('gpu_fraction', '1/3', 'define the gpu fraction used')
 tf.app.flags.DEFINE_integer('batch_size', 256, '')
 tf.app.flags.DEFINE_integer('test_batch_size', 256, '')
 tf.app.flags.DEFINE_integer('hidden_size', 1000, '')
@@ -18,7 +18,9 @@ tf.app.flags.DEFINE_integer('output_size', 10, '')
 tf.app.flags.DEFINE_integer('test_per_iter', 50, '')
 tf.app.flags.DEFINE_integer('max_to_keep', 20, '')
 tf.app.flags.DEFINE_string('optim_type', 'adam', '[exp_decay, adam]')
+tf.app.flags.DEFINE_boolean('allow_growth', True, '')
 tf.app.flags.DEFINE_boolean('synthetic', False, 'use synthetic gradients or not')
+tf.app.flags.DEFINE_boolean('conditional', False, 'use conditional DNI or not')
 # exponetial decay
 '''
 tf.app.flags.DEFINE_float('init_lr', 0.1, '')
@@ -48,9 +50,12 @@ def main(_):
 	pp(attrs)
 	conf.checkpoint_dir = os.path.join(conf.checkpoint_dir, conf.model_name)
 	dataset = cifar()
-	
-	gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=calc_gpu_fraction(conf.gpu_fraction))
-	with tf.Session(config=tf.ConfigProto(gpu_options=gpu_options)) as sess:
+
+	config = tf.ConfigProto()
+	config.gpu_options.per_process_gpu_memory_fraction = calc_gpu_fraction(conf.gpu_fraction)	
+	if conf.allow_growth:
+		config.gpu_options.allow_growth = True
+	with tf.Session(config=config) as sess:
 		model = classifier.Model(sess, dataset, conf, num_train=dataset.num_train, input_size=dataset.input_size)
 		if conf.model_name == 'cnn':
 			model.build_cnn_model()

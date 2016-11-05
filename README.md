@@ -7,7 +7,7 @@ I implement the ***[Decoupled Neural Interfaces using Synthetic Gradients](http:
 - CIFAR10  dataset, go to the [dataset website](https://www.cs.toronto.edu/~kriz/cifar.html)
 
 ## TODO
-- apply cDNI
+- use multi-threading on gpu to analyze the speed
 - apply to some more complicated network to see if it's general
 
 ## What's synthetic gradients?

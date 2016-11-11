@@ -16,9 +16,9 @@ class cifar():
 	'''
 	def __init__(self):
 
-		append = lambda x: '/data2/andrewliao11/cifar-10-batches-py/data_batch_'+x
+		append = lambda x: '/media/VSlab2/andrewliao11_data/cifar-10-batches-py/data_batch_'+x
 		self.train_filename = [ append(str(i+1)) for i in range(5)]
-		self.test_filename = '/data2/andrewliao11/cifar-10-batches-py/test_batch'
+		self.test_filename = '/media/VSlab2/andrewliao11_data/cifar-10-batches-py/test_batch'
 		self.num_train = 50000
 		self.num_test = 10000
 		self.input_size = 3072

@@ -3,6 +3,7 @@ import time
 from functools import reduce
 from tensorflow.contrib.layers.python.layers import initializers
 import cPickle
+import pdb
 
 def unpickle(file):
 
@@ -32,7 +33,7 @@ def pooling(inputs, kernel_size=None, stride=None, type='max', padding='SAME', n
 def conv2d(inputs, output_size, kernel_size, stride, 
 			weights_initializer=tf.contrib.layers.xavier_initializer(),
 			biases_initializer=tf.zeros_initializer, synthetic=False,
-			batch_norm = True,
+			batch_norm = True, conditional=False, label=None, 
 			activation_fn=tf.nn.relu, padding='SAME', name='conv2d'):
 	
 	var = {}
@@ -51,8 +52,14 @@ def conv2d(inputs, output_size, kernel_size, stride,
 			out = activation_fn(out)
 
 		if synthetic:
-			out_shape = out.get_shape()
-			h1, var['l1_w'], var['l1_b'] = conv2d(out, 128, [5,5], [1,1],
+			out_shape = out.get_shape().as_list()
+			label_shape = label.get_shape().as_list()	# B, 10
+			if conditional:
+				label_tile = tf.reshape(tf.tile(label, [1,out_shape[1]*out_shape[2]]), [out_shape[0],out_shape[1],out_shape[2], label_shape[1]])
+				out_syn = tf.concat(3, [out, label_tile])
+			else:
+				out_syn = out
+			h1, var['l1_w'], var['l1_b'] = conv2d(out_syn, 128, [5,5], [1,1],
 								tf.zeros_initializer, tf.zeros_initializer, batch_norm=True, activation_fn=tf.nn.relu, name='l1')
 			h2, var['l2_w'], var['l2_b'] = conv2d(h1, 128, [5,5], [1,1],
 								tf.zeros_initializer, tf.zeros_initializer, batch_norm=True, activation_fn=tf.nn.relu, name='l2')
@@ -62,9 +69,9 @@ def conv2d(inputs, output_size, kernel_size, stride,
 		else:		
 			return out, var['w'], var['b']
 
-def linear(inputs, output_size,
+def linear(inputs, output_size, 
 			weights_initializer=initializers.xavier_initializer(),
-			biases_initializer=tf.zeros_initializer, synthetic=False,
+			biases_initializer=tf.zeros_initializer,
 			activation_fn=None, batch_norm=True, name='linear'):
 	
 	var = {}
@@ -80,16 +87,16 @@ def linear(inputs, output_size,
 			out = tf.contrib.layers.batch_norm(out)
 		if activation_fn is not None:
 			out = activation_fn(out)
-		if synthetic:
-			with tf.variable_scope('synthetic_grad'):
-				out_shape = out.get_shape()
-				h1, var['l1_w'], var['l1_b'] = linear(out, 4000, weights_initializer=tf.zeros_initializer,
-									biases_initializer=tf.zeros_initializer, activation_fn=tf.nn.relu, batch_norm=True, name='l1')
-				synthetic_grad, var['l2_w'], var['l2_b'] = linear(h1, out_shape[1], weights_initializer=tf.zeros_initializer,
-									biases_initializer=tf.zeros_initializer, activation_fn=tf.nn.relu, batch_norm=True, name='l2')
-			return out, var['w'], var['b'], synthetic_grad
-		else:
-			return out, var['w'], var['b']
+		return out
+
+def linear_w_variable(inputs, W, b, activation_fn=None, batch_norm=True, name='linear'):
+	with tf.variable_scope(name):
+		out = tf.nn.bias_add(tf.matmul(inputs, W), b)
+		if batch_norm:
+			out = tf.contrib.layers.batch_norm(out)
+		if activation_fn is not None:
+			out = activation_fn(out)
+		return out
 
 def get_time():
 	return time.strftime("%Y-%m-%d_%H:%M:%S", time.gmtime())

@@ -15,7 +15,7 @@ tf.app.flags.DEFINE_integer('batch_size', 256, '')
 tf.app.flags.DEFINE_integer('test_batch_size', 256, '')
 tf.app.flags.DEFINE_integer('hidden_size', 1000, '')
 tf.app.flags.DEFINE_integer('output_size', 10, '')
-tf.app.flags.DEFINE_integer('test_per_iter', 50, '')
+tf.app.flags.DEFINE_integer('test_per_iter', 500, '')
 tf.app.flags.DEFINE_integer('max_to_keep', 20, '')
 tf.app.flags.DEFINE_string('optim_type', 'adam', '[exp_decay, adam]')
 tf.app.flags.DEFINE_boolean('allow_growth', True, '')
@@ -32,9 +32,9 @@ tf.app.flags.DEFINE_float('init_lr', 3e-5, '')
 
 conf = flags.FLAGS
 # set random seed
-append = lambda x: '/data2/andrewliao11/cifar-10-batches-py/data_batch_'+x
+append = lambda x: '/media/VSlab2/andrewliao11_data/cifar-10-batches-py/data_batch_'+x
 train_filename = [ append(str(i+1)) for i in range(5)]
-test_filename = '/data2/andrewliao11/cifar-10-batches-py/test_batch'
+test_filename = '/media/VSlab2/andrewliao11_data/cifar-10-batches-py/test_batch'
 
 def calc_gpu_fraction(fraction_string):
 	idx, num = fraction_string.split('/')
@@ -63,6 +63,8 @@ def main(_):
 			model.build_mlp_model()
 		else:
 			assert()
+		if conf.synthetic:
+			model.build_decoupled_mlp_model()
 		model.train()	
 
 if __name__ == '__main__':

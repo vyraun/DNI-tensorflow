@@ -1,6 +1,6 @@
 Disclaimer: right now the code contains a little bug, and i'll fix it as soon as possible.    
 # Image classification with synthetic gradient in tensorflow
-I implement the ***[Decoupled Neural Interfaces using Synthetic Gradients](http://arxiv.org/abs/1608.05343)*** in tensorflow. The paper use synthetic gradient to decouple the layers in the network. This is pretty interesting since we won't suffer from **update lock** anymore. I test my model in cifar10 and archieve similar result as the paper claimed.
+I implement the ***[Decoupled Neural Interfaces using Synthetic Gradients](http://arxiv.org/abs/1608.05343)*** in tensorflow. The paper use synthetic gradient to decouple the layers in the network. This is pretty interesting since we won't suffer from **update lock** (Here is a talk online on DNI: https://www.youtube.com/watch?v=toZprSCCmNI) anymore. I test my model in cifar10 and archieve similar result as the paper claimed.
 
 ## Requirement
 - Tensorflow, follow the [official installation](https://www.tensorflow.org/versions/r0.10/get_started/os_setup.html#download-and-setup)
